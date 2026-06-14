@@ -1,0 +1,126 @@
+A. Source Code 
+import cv2 from ultralytics import YOLO 
+ 
+# Load YOLOv8 model 
+model = YOLO("yolov8n.pt") 
+ 
+# Open traffic video (replace with full path if needed) 
+cap=cv2.VideoCapture("C:/Users//OneDrive/Desktop/PROJECT/Traffic_control_system/traf fic.mp4") if not cap.isOpened(): 
+    print("Error: Could not open video file")     exit() 
+ 
+while cap.isOpened():     ret, frame = cap.read()     if not ret:         break 
+ 
+    results = model(frame)     boxes = results[0].boxes 
+    names = model.names 
+ 
+    vehicle_count = 0     pedestrian_count = 0 
+    bicycle_count = 0 
+ 
+    # Count objects     for box in boxes: 
+        cls = int(box.cls[0]) 
+        label = names[cls] 
+ 
+        if label in ["car", "bus", "truck", "motorcycle"]: 
+            vehicle_count += 1         elif label == "person":             pedestrian_count += 1         elif label == "bicycle":             bicycle_count += 1 
+ 
+    # Traffic density calculation     if vehicle_count > 20: 
+        density = "High Traffic"     elif vehicle_count > 10: 
+        density = "Medium Traffic"     else: 
+        density = "Low Traffic" 
+ 
+    # Annotate frame 
+    annotated_frame = results[0].plot() 
+ 
+    cv2.putText(annotated_frame,                 f"Vehicles: {vehicle_count}", 
+                (20, 40), 
+                cv2.FONT_HERSHEY_SIMPLEX, 
+                1, 
+                (0, 255, 0), 
+                2) 
+ 
+    cv2.putText(annotated_frame, 
+                f"Pedestrians: {pedestrian_count}", 
+                (20, 80), 
+                cv2.FONT_HERSHEY_SIMPLEX, 
+                1, 
+                (255, 255, 0), 
+                2) 
+ 
+    cv2.putText(annotated_frame,                 f"Bicycles: {bicycle_count}", 
+                (20, 120), 
+                cv2.FONT_HERSHEY_SIMPLEX, 
+                1, 
+                (255, 0, 255), 
+                2) 
+ 
+    cv2.putText(annotated_frame,                 f"Traffic Density: {density}", 
+                (20, 160), 
+                cv2.FONT_HERSHEY_SIMPLEX, 
+                1, 
+                (255, 0, 0), 
+                2) 
+ 
+    # Display the frame 
+    cv2.imshow("Smart Traffic Monitoring System", annotated_frame) 
+ 
+    # Press ESC to exit     if cv2.waitKey(1) & 0xFF == 27: 
+        break 
+ 
+cap.release() cv2.destroyAllWindows() 
+ 
+B. ESP32 by using arduino - Code 
+#include "esp_camera.h" 
+#include <WiFi.h> 
+ 
+// Replace with your network credentials 
+const char* ssid = "Airtel_Moha_5G"; 
+const char* password = "24557657"; 
+ 
+// AI-Thinker ESP32-CAM pin configuration 
+#define PWDN_GPIO_NUM     32 
+#define RESET_GPIO_NUM    -1 
+#define XCLK_GPIO_NUM      0 
+#define SIOD_GPIO_NUM     26 #define SIOC_GPIO_NUM     27 
+#define Y9_GPIO_NUM       35 
+#define Y8_GPIO_NUM       34 
+#define Y7_GPIO_NUM       39 
+#define Y6_GPIO_NUM       36 
+#define Y5_GPIO_NUM       21 
+#define Y4_GPIO_NUM       19 
+#define Y3_GPIO_NUM       18 
+#define Y2_GPIO_NUM        5 
+#define VSYNC_GPIO_NUM    25 
+#define HREF_GPIO_NUM     23 
+#define PCLK_GPIO_NUM     22 
+ 
+void startCameraServer(); 
+ 
+void setup() {   Serial.begin(115200); 
+  Serial.setDebugOutput(true); 
+  Serial.println("ESP32-CAM Initializing..."); 
+ 
+  camera_config_t config;   config.ledc_channel = LEDC_CHANNEL_0;   config.ledc_timer = LEDC_TIMER_0;   config.pin_d0 = Y2_GPIO_NUM;   config.pin_d1 = Y3_GPIO_NUM;   config.pin_d2 = Y4_GPIO_NUM;   config.pin_d3 = Y5_GPIO_NUM;   config.pin_d4 = Y6_GPIO_NUM;   config.pin_d5 = Y7_GPIO_NUM;   config.pin_d6 = Y8_GPIO_NUM;   config.pin_d7 = Y9_GPIO_NUM;   config.pin_xclk = XCLK_GPIO_NUM;   config.pin_pclk = PCLK_GPIO_NUM;   config.pin_vsync = VSYNC_GPIO_NUM;   config.pin_href = HREF_GPIO_NUM;   config.pin_sscb_sda = SIOD_GPIO_NUM;   config.pin_sscb_scl = SIOC_GPIO_NUM;   config.pin_pwdn = PWDN_GPIO_NUM;   config.pin_reset = RESET_GPIO_NUM;   config.xclk_freq_hz = 20000000; 
+  config.pixel_format = PIXFORMAT_JPEG;   // Select frame size (adjust for speed or quality)   config.frame_size = FRAMESIZE_SVGA; 
+  config.jpeg_quality = 10;  // lower value = higher quality   config.fb_count = 2; 
+ 
+  // Camera init 
+  esp_err_t err = esp_camera_init(&config); 
+  if (err != ESP_OK) { 
+    Serial.printf("Camera init failed with error 0x%x", err);     return; 
+  } 
+ 
+  // Connect to Wi-Fi 
+  WiFi.begin(ssid, password); 
+  Serial.println("Connecting to WiFi..."); 
+  while (WiFi.status() != WL_CONNECTED) {     delay(500); 
+    Serial.print(".");   } 
+  Serial.println(""); 
+  Serial.println("WiFi connected!"); 
+  Serial.print("Camera Stream URL: http://"); 
+  Serial.print(WiFi.localIP()); 
+  Serial.println(":80"); 
+ 
+  // Start camera server   startCameraServer(); 
+} 
+void loop() { 
+  // Nothing needed here; server runs independently } 
